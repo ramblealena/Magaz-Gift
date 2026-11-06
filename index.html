@@ -306,36 +306,35 @@ function removeItem(item) {
 
 /* Gift: slot grows and pushes cards down, the card slides out from behind
    the top card while scaling up and fading in. 600 ms. */
-/* Hiding plays the very same animation in reverse, so an interrupted
-   appear/disappear continues smoothly from wherever it is. */
-let giftAnims = null;
-function giftTimeline() {
-  if (!giftAnims) {
-    const opts = {duration: DURATION, easing: EASE, fill: 'both'};
-    giftAnims = [
-      $slot.animate([{height: '0px'}, {height: (GIFT_H + GAP) + 'px'}], opts),
-      $gift.animate([
-        {opacity: 0, transform: 'translateY(16px) scale(.6)'},
-        {opacity: 1, transform: 'translateY(0) scale(1)'}
-      ], opts),
-    ];
-    giftAnims.forEach(a => a.pause());
-  }
-  return giftAnims;
-}
+/* Appear: 600 ms, slot grows and pushes cards down, gift scales up from .6 and fades in.
+   Disappear: the same motion reverted, but 300 ms with a fast start — no pause.
+   Each run starts from the current on-screen state, so quick +/− never jumps. */
+const HIDE_DURATION = 300;
+const HIDE_EASE = 'cubic-bezier(.4,0,.6,1)';
+const GIFT_HIDDEN = {opacity: 0, transform: 'translateY(16px) scale(.6)'};
+const GIFT_SHOWN  = {opacity: 1, transform: 'translateY(0px) scale(1)'};
+let giftAnims = [];
 function toggleGift(show, animate = true) {
   if (show === giftShown) return;
   giftShown = show;
   $gift.style.pointerEvents = show ? 'auto' : 'none';
-  giftTimeline().forEach(a => {
-    a.playbackRate = show ? 1 : -1;
-    if (!animate) { a.currentTime = show ? DURATION : 0; a.pause(); }
-    else a.play();
-  });
+  const cs = getComputedStyle($gift);
+  const from = {opacity: cs.opacity, transform: cs.transform === 'none' ? 'none' : cs.transform};
+  const fromH = $slot.getBoundingClientRect().height + 'px';
+  giftAnims.forEach(a => a.cancel());
+  const opts = {
+    duration: animate ? (show ? DURATION : HIDE_DURATION) : 0,
+    easing: show ? EASE : HIDE_EASE,
+    fill: 'forwards'
+  };
+  giftAnims = [
+    $slot.animate([{height: fromH}, {height: show ? (GIFT_H + GAP) + 'px' : '0px'}], opts),
+    $gift.animate([giftAnims.length ? from : (show ? GIFT_HIDDEN : GIFT_SHOWN), show ? GIFT_SHOWN : GIFT_HIDDEN], opts),
+  ];
 }
 function resetGift() {
-  if (giftAnims) giftAnims.forEach(a => a.cancel());
-  giftAnims = null;
+  giftAnims.forEach(a => a.cancel());
+  giftAnims = [];
 }
 
 function reset() {
