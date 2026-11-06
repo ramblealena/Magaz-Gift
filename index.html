@@ -26,7 +26,7 @@
 
   .phone{
     position:relative; width:375px; height:812px; background:var(--bg);
-    border-radius:44px; overflow:hidden;
+    border-radius:34px; overflow:hidden;
     box-shadow:0 0 0 10px #1b1b1b, 0 0 0 11px #2c2c2c, 0 40px 80px rgba(0,0,0,.6);
   }
   @media (max-width:500px), (max-height:830px) and (max-width:900px){
@@ -92,9 +92,9 @@
 
   /* Summary */
   .summary{
-    position:absolute;left:6px;right:6px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:10;
+    position:absolute;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:10;
     background:var(--sum-bg);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
-    border:1px solid var(--sum-border);border-radius:24px;padding:16px 10px 10px;
+    border:1px solid var(--sum-border);border-radius:26px;padding:16px 10px 10px;
   }
   .sum-row{display:flex;align-items:center;gap:16px;padding:0 6px}
   .sum-label{font-size:18px;font-weight:600}
@@ -306,31 +306,42 @@ function removeItem(item) {
 
 /* Gift: slot grows and pushes cards down, the card slides out from behind
    the top card while scaling up and fading in. 600 ms. */
-let slotAnim, giftAnim;
+/* Hiding plays the very same animation in reverse, so an interrupted
+   appear/disappear continues smoothly from wherever it is. */
+let giftAnims = null;
+function giftTimeline() {
+  if (!giftAnims) {
+    const opts = {duration: DURATION, easing: EASE, fill: 'both'};
+    giftAnims = [
+      $slot.animate([{height: '0px'}, {height: (GIFT_H + GAP) + 'px'}], opts),
+      $gift.animate([
+        {opacity: 0, transform: 'translateY(16px) scale(.6)'},
+        {opacity: 1, transform: 'translateY(0) scale(1)'}
+      ], opts),
+    ];
+    giftAnims.forEach(a => a.pause());
+  }
+  return giftAnims;
+}
 function toggleGift(show, animate = true) {
   if (show === giftShown) return;
   giftShown = show;
-  const full = (GIFT_H + GAP) + 'px';
-  const shown  = {opacity: 1, transform: 'translateY(0) scale(1)'};
-  const hidden = {opacity: 0, transform: 'translateY(12px) scale(.8)'};
-  slotAnim && slotAnim.cancel(); giftAnim && giftAnim.cancel();
-  const opts = {duration: animate ? DURATION : 0, easing: EASE, fill: 'forwards'};
-  const curH = $slot.getBoundingClientRect().height + 'px';
-  if (show) {
-    slotAnim = $slot.animate([{height: curH}, {height: full}], opts);
-    giftAnim = $gift.animate([hidden, shown], opts);
-    $gift.style.pointerEvents = 'auto';
-  } else {
-    slotAnim = $slot.animate([{height: curH}, {height: '0px'}], opts);
-    giftAnim = $gift.animate([shown, hidden], opts);
-    $gift.style.pointerEvents = 'none';
-  }
+  $gift.style.pointerEvents = show ? 'auto' : 'none';
+  giftTimeline().forEach(a => {
+    a.playbackRate = show ? 1 : -1;
+    if (!animate) { a.currentTime = show ? DURATION : 0; a.pause(); }
+    else a.play();
+  });
+}
+function resetGift() {
+  if (giftAnims) giftAnims.forEach(a => a.cancel());
+  giftAnims = null;
 }
 
 function reset() {
   items = INITIAL.map(i => ({...i}));
   giftShown = false;
-  slotAnim && slotAnim.cancel(); giftAnim && giftAnim.cancel();
+  resetGift();
   render();
   document.getElementById('scroll').scrollTo({top: 0});
 }
