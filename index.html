@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Magaz Gift — корзина с подарком</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#141414; --card:#1d1d1d; --gift-card:#272727; --chip:#363636;
+    --muted:#888; --icon:#9da2a6; --blue:#3372f3; --accent:#ea7c41;
+    --sum-bg:rgba(29,30,32,.92); --sum-border:#2a2d33;
+    --anim:600ms; --ease:cubic-bezier(.22,.8,.24,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Onest",system-ui,-apple-system,sans-serif;
+    background:#0b0b0b; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+
+  .phone{
+    position:relative; width:375px; height:812px; background:var(--bg);
+    border-radius:44px; overflow:hidden;
+    box-shadow:0 0 0 10px #1b1b1b, 0 0 0 11px #2c2c2c, 0 40px 80px rgba(0,0,0,.6);
+  }
+  @media (max-width:500px), (max-height:830px) and (max-width:900px){
+    body{display:block;background:var(--bg)}
+    .phone{width:100%;height:100dvh;border-radius:0;box-shadow:none}
+  }
+  .scroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+
+  /* Header */
+  .topbar{height:44px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;margin-top:env(safe-area-inset-top)}
+  .logo{display:flex;align-items:center;gap:8px}
+  .logo-text{font-size:13px;line-height:13px;font-weight:600;letter-spacing:-.01em}
+  .top-actions{display:flex;align-items:center;gap:12px}
+  .bag{position:relative;width:24px;height:24px}
+  .badge{position:absolute;top:-5px;right:-10px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--accent);
+    color:#fff;font-size:10px;font-weight:700;line-height:15px;text-align:center;border:1.5px solid var(--bg);box-sizing:content-box}
+  .avatar{width:24px;height:24px;border-radius:50%;display:block}
+
+  .header{padding:20px 20px 0}
+  h1{font-size:32px;line-height:37px;font-weight:800;letter-spacing:-.02em}
+  .subtitle{margin-top:12px;font-size:16px;line-height:19px;color:var(--muted)}
+
+  /* Items */
+  .items{position:relative;padding:32px 16px 168px;display:flex;flex-direction:column}
+  .card{position:relative;z-index:2;background:var(--card);border-radius:16px;padding:16px;display:flex;gap:16px;margin-bottom:8px}
+  .thumb{flex:none;width:68px;height:68px;border-radius:8px;object-fit:cover;object-position:50% 30%;background:#000}
+  .info{flex:1;min-width:0}
+  .title{font-size:17px;line-height:22px;font-weight:500;letter-spacing:-.01em}
+  .attrs{display:flex;gap:8px;margin-top:12px}
+  .size{width:26px;height:26px;border-radius:6px;background:#fff;color:#000;font-size:12px;font-weight:700;display:grid;place-items:center}
+  .color{width:26px;height:26px;border-radius:50%;background:var(--blue)}
+  .row{display:flex;align-items:center;justify-content:space-between;margin-top:20px}
+  .stepper{display:flex;align-items:center}
+  .step-btn{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;transition:background .15s, transform .1s}
+  .step-btn:active{transform:scale(.9)}
+  .step-btn.minus,.step-btn.plus{background:var(--chip)}
+  .step-btn.minus:hover,.step-btn.plus:hover{background:#424242}
+  .step-btn svg{display:block}
+  .step-btn .ic{position:absolute;transition:opacity .18s, transform .18s}
+  .dec{position:relative}
+  .dec .ic-trash{opacity:1}
+  .dec .ic-minus{opacity:0;transform:scale(.6)}
+  .dec.minus .ic-trash{opacity:0;transform:scale(.6)}
+  .dec.minus .ic-minus{opacity:1;transform:none}
+  .qty{width:36px;text-align:center;font-size:17px;font-weight:500;font-variant-numeric:tabular-nums}
+  .price{font-size:17px;line-height:22px;font-weight:700;font-variant-numeric:tabular-nums}
+  .bump{animation:bump .25s var(--ease)}
+  @keyframes bump{40%{transform:scale(1.08)}}
+
+  /* Gift */
+  .gift-slot{position:relative;z-index:1;height:0;overflow:visible}
+  .gift{
+    position:absolute;left:0;right:0;top:0;height:100px;
+    background:var(--gift-card);border-radius:16px;padding:16px;display:flex;gap:16px;align-items:flex-start;
+    opacity:0;transform-origin:50% 0;pointer-events:none
+  }
+  .gift-ico{flex:none;width:68px;height:68px}
+  .gift-title{font-size:17px;line-height:22px;font-weight:600;letter-spacing:-.01em}
+  .gift-sub{margin-top:6px;font-size:13px;line-height:17px;color:var(--muted)}
+
+  .removing{overflow:hidden}
+
+  /* Summary */
+  .summary{
+    position:absolute;left:6px;right:6px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:10;
+    background:var(--sum-bg);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+    border:1px solid var(--sum-border);border-radius:24px;padding:16px 10px 10px;
+  }
+  .sum-row{display:flex;align-items:center;gap:16px;padding:0 6px}
+  .sum-label{font-size:18px;font-weight:600}
+  .sum-line{flex:1;height:10px;position:relative}
+  .sum-line::before{content:"";position:absolute;left:0;right:2px;top:50%;height:1px;background:#8a8a8a}
+  .sum-line::after{content:"";position:absolute;right:1px;top:50%;width:7px;height:7px;border-top:1px solid #8a8a8a;border-right:1px solid #8a8a8a;transform:translateY(-50%) rotate(45deg)}
+  .sum-total{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+  .sum-sub{padding:0 6px;margin-top:8px;font-size:13px;color:#7d7d7d}
+  .cta{margin-top:14px;width:100%;height:52px;border-radius:16px;background:var(--accent);font-size:17px;font-weight:500;transition:filter .15s, transform .1s}
+  .cta:hover{filter:brightness(1.06)}
+  .cta:active{transform:scale(.98)}
+
+  .hint{position:fixed;left:24px;bottom:24px;max-width:260px;font-size:13px;line-height:1.45;color:#777}
+  .hint b{color:#bbb;font-weight:600}
+  .reset{margin-top:8px;color:#bbb;text-decoration:underline;text-underline-offset:3px}
+  @media (max-width:900px){.hint{display:none}}
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="scroll" id="scroll">
+    <div class="topbar">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+          <rect x="1" y="3" width="26" height="22" rx="7" fill="#fff"/>
+          <ellipse cx="14" cy="14" rx="6.2" ry="7.6" fill="#141414"/>
+          <ellipse cx="14" cy="14" rx="4.2" ry="5.6" fill="none" stroke="#fff" stroke-width="1.4"/>
+          <path d="M11.6 15.6c.3 1.3 1.2 2.1 2.4 2.3" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+        </svg>
+        <div class="logo-text">магазин мерча<br>авиасейлс</div>
+      </div>
+      <div class="top-actions">
+        <div class="bag">
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8.5 6V4.5A2.5 2.5 0 0 1 11 2h2a2.5 2.5 0 0 1 2.5 2.5V6" stroke="#fff" stroke-width="2" fill="none"/>
+            <rect x="4" y="6" width="16" height="14" rx="3.5" fill="#fff"/>
+            <rect x="6.5" y="20" width="2.5" height="2.5" rx="1" fill="#fff"/><rect x="15" y="20" width="2.5" height="2.5" rx="1" fill="#fff"/>
+          </svg>
+          <span class="badge" id="badge">3</span>
+        </div>
+        <img class="avatar" src="assets/avatar.png" alt="Профиль">
+      </div>
+    </div>
+
+    <div class="header">
+      <h1>Что в багаже</h1>
+      <p class="subtitle" id="subtitle">3 вещи. Летите налегке</p>
+    </div>
+
+    <div class="items" id="items">
+      <div class="gift-slot" id="giftSlot">
+        <div class="gift" id="gift" aria-live="polite">
+          <svg class="gift-ico" viewBox="0 0 68 68" aria-hidden="true">
+            <g transform="rotate(-7 34 38)" stroke="#fff" stroke-width="4.5" stroke-linejoin="round" paint-order="stroke">
+              <ellipse cx="26" cy="17" rx="7.5" ry="6.5" fill="#3372f3"/>
+              <ellipse cx="42" cy="17" rx="7.5" ry="6.5" fill="#3372f3"/>
+              <rect x="12.5" y="33" width="43" height="28" rx="6.5" fill="#3372f3"/>
+              <rect x="9" y="21.5" width="50" height="14" rx="4.5" fill="#3372f3"/>
+            </g>
+            <g transform="rotate(-7 34 38)" fill="#fff">
+              <rect x="31.5" y="21" width="5" height="40" rx="1"/>
+              <ellipse cx="26.5" cy="18.2" rx="2.6" ry="2"/>
+              <ellipse cx="41.5" cy="18.2" rx="2.6" ry="2"/>
+            </g>
+          </svg>
+          <div>
+            <div class="gift-title">Вам подарочек от Авиасейлс</div>
+            <div class="gift-sub">за покупку от 20&nbsp;000&nbsp;₽!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="sum-row">
+      <span class="sum-label">Итого</span>
+      <span class="sum-line"></span>
+      <span class="sum-total" id="total">15 000 ₽</span>
+    </div>
+    <div class="sum-sub">Доставку рассчитаем дальше</div>
+    <button class="cta" type="button">Перейти к доставке</button>
+  </div>
+</div>
+
+<div class="hint">
+  <b>Прототип.</b> Нажми «+» на любой карточке: при сумме от 20&nbsp;000&nbsp;₽ в корзине появится подарок.<br>
+  <button class="reset" id="reset" type="button">Сбросить корзину</button>
+</div>
+
+<template id="cardTpl">
+  <div class="card">
+    <img class="thumb" src="assets/product.jpg" alt="">
+    <div class="info">
+      <div class="title"></div>
+      <div class="attrs"><span class="size">XS</span><span class="color"></span></div>
+      <div class="row">
+        <div class="stepper">
+          <button class="step-btn dec" type="button" aria-label="Уменьшить">
+            <svg class="ic ic-trash" width="24" height="24" viewBox="0 0 24 24">
+              <rect x="9" y="3" width="6" height="2" rx="1" fill="#9da2a6"/>
+              <rect x="4" y="5" width="16" height="2.5" rx="1.25" fill="#9da2a6"/>
+              <path d="M5.8 9h12.4l-1 10.2A2 2 0 0 1 15.2 21H8.8a2 2 0 0 1-2-1.8L5.8 9Z" fill="#9da2a6"/>
+              <path d="M10 12.5l4 4m0-4l-4 4" stroke="#1d1d1d" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <svg class="ic ic-minus" width="14" height="14" viewBox="0 0 14 14"><path d="M2 7h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <span class="qty">1</span>
+          <button class="step-btn plus" type="button" aria-label="Увеличить">
+            <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 7h10M7 2v10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <span class="price">5 000 ₽</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+const THRESHOLD = 20000;
+const DURATION = 600;
+const EASE = 'cubic-bezier(.22,.8,.24,1)';
+const GIFT_H = 100, GAP = 8;
+
+const INITIAL = [
+  {id:1, title:'Унисекс сорочка горловая хлопок бумага короткое лево длинное право не брак', price:5000, qty:1},
+  {id:2, title:'Мешок для тела без рук на молнии карманное удобство', price:5000, qty:1},
+  {id:3, title:'Чехлы для ступней тканевые гламур карманные пятки', price:5000, qty:1},
+];
+let items = [];
+let giftShown = false;
+
+const $items = document.getElementById('items');
+const $slot = document.getElementById('giftSlot');
+const $gift = document.getElementById('gift');
+const $total = document.getElementById('total');
+const $badge = document.getElementById('badge');
+const $subtitle = document.getElementById('subtitle');
+const tpl = document.getElementById('cardTpl');
+
+const fmt = n => n.toLocaleString('ru-RU').replace(/ |\s/g, ' ') + ' ₽';
+const plural = n => {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return 'вещь';
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'вещи';
+  return 'вещей';
+};
+const bump = el => { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); };
+
+function render() {
+  $items.querySelectorAll('.card').forEach(c => c.remove());
+  items.forEach(item => {
+    const node = tpl.content.firstElementChild.cloneNode(true);
+    node.dataset.id = item.id;
+    node.querySelector('.title').textContent = item.title;
+    node.querySelector('.dec').addEventListener('click', () => change(item.id, -1));
+    node.querySelector('.plus').addEventListener('click', () => change(item.id, +1));
+    $items.appendChild(node);
+    updateCard(item, false);
+  });
+  updateSummary(false);
+}
+
+function cardEl(id){ return $items.querySelector(`.card[data-id="${id}"]`); }
+
+function updateCard(item, animate = true) {
+  const el = cardEl(item.id); if (!el) return;
+  el.querySelector('.qty').textContent = item.qty;
+  const price = el.querySelector('.price');
+  price.textContent = fmt(item.price * item.qty);
+  const dec = el.querySelector('.dec');
+  dec.classList.toggle('minus', item.qty > 1);
+  dec.setAttribute('aria-label', item.qty > 1 ? 'Уменьшить' : 'Удалить');
+  if (animate) bump(price);
+}
+
+function updateSummary(animate = true) {
+  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const count = items.reduce((s, i) => s + i.qty, 0);
+  $total.textContent = fmt(total);
+  $badge.textContent = count;
+  $badge.style.display = count ? '' : 'none';
+  $subtitle.textContent = count ? `${count} ${plural(count)}. Летите налегке` : 'Пока пусто. Летите налегке';
+  if (animate) bump($total);
+  toggleGift(total >= THRESHOLD, animate);
+}
+
+function change(id, delta) {
+  const item = items.find(i => i.id === id); if (!item) return;
+  if (delta < 0 && item.qty === 1) { removeItem(item); return; }
+  item.qty += delta;
+  updateCard(item);
+  updateSummary();
+}
+
+function removeItem(item) {
+  const el = cardEl(item.id);
+  items = items.filter(i => i !== item);
+  updateSummary();
+  if (!el) return;
+  const h = el.offsetHeight;
+  el.classList.add('removing');
+  el.animate([
+    {height: h + 'px', marginBottom: GAP + 'px', opacity: 1, transform: 'scale(1)'},
+    {height: '0px', marginBottom: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0, transform: 'scale(.96)'}
+  ], {duration: 350, easing: EASE}).onfinish = () => el.remove();
+}
+
+/* Gift: slot grows and pushes cards down, the card slides out from behind
+   the top card while scaling up and fading in. 600 ms. */
+let slotAnim, giftAnim;
+function toggleGift(show, animate = true) {
+  if (show === giftShown) return;
+  giftShown = show;
+  const full = (GIFT_H + GAP) + 'px';
+  const shown  = {opacity: 1, transform: 'translateY(0) scale(1)'};
+  const hidden = {opacity: 0, transform: 'translateY(12px) scale(.8)'};
+  slotAnim && slotAnim.cancel(); giftAnim && giftAnim.cancel();
+  const opts = {duration: animate ? DURATION : 0, easing: EASE, fill: 'forwards'};
+  const curH = $slot.getBoundingClientRect().height + 'px';
+  if (show) {
+    slotAnim = $slot.animate([{height: curH}, {height: full}], opts);
+    giftAnim = $gift.animate([hidden, shown], opts);
+    $gift.style.pointerEvents = 'auto';
+  } else {
+    slotAnim = $slot.animate([{height: curH}, {height: '0px'}], opts);
+    giftAnim = $gift.animate([shown, hidden], opts);
+    $gift.style.pointerEvents = 'none';
+  }
+}
+
+function reset() {
+  items = INITIAL.map(i => ({...i}));
+  giftShown = false;
+  slotAnim && slotAnim.cancel(); giftAnim && giftAnim.cancel();
+  render();
+  document.getElementById('scroll').scrollTo({top: 0});
+}
+document.getElementById('reset').addEventListener('click', reset);
+reset();
+</script>
+</body>
+</html>
